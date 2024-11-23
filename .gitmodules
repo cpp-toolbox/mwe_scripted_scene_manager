@@ -22,3 +22,9 @@
 [submodule "src/graphics/animated_texture_atlas"]
 	path = src/graphics/animated_texture_atlas
 	url = git@github.com:cpp-toolbox/animated_texture_atlas.git
+[submodule "src/graphics/scripted_scene_manager"]
+	path = src/graphics/scripted_scene_manager
+	url = git@github.com:cpp-toolbox/scripted_scene_manager.git
+[submodule "src/graphics/sound_system"]
+	path = src/sound_system
+	url = git@github.com:cpp-toolbox/sound_system.git

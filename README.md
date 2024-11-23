@@ -1,3 +1,3 @@
-# mwe_animated_texture_atlas
+# mwe_scripted_scene_manager
 
-Minimal working example for animated texture atlases.
+Minimal working example for scripted scene managers.

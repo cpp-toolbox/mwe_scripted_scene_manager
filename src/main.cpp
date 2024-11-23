@@ -1,8 +1,10 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include "graphics/animated_texture_atlas/animated_texture_atlas.hpp"
+#include "graphics/scripted_scene_manager/scripted_scene_manager.hpp"
 #include "graphics/window/window.hpp"
 #include "graphics/shader_cache/shader_cache.hpp"
+#include "sound_system/sound_system.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 
@@ -11,7 +13,12 @@
 #include <cstdio>
 #include <cstdlib>
 
+#include <functional>
 #include <iostream>
+
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
 
 unsigned int SCREEN_WIDTH = 640;
 unsigned int SCREEN_HEIGHT = 480;
@@ -72,7 +79,7 @@ OpenGLDrawingData prepare_drawing_data_and_opengl_drawing_data(ShaderCache &shad
         vao_name, tcbo_name, ShaderType::TRANSFORM_V_WITH_TEXTURES,
         ShaderVertexAttributeVariable::PASSTHROUGH_TEXTURE_COORDINATE);
 
-    glEnable(GL_BLEND);  
+    glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // note that this is allowed, the call to glVertexAttribPointer registered
@@ -99,12 +106,42 @@ int main() {
 
     std::vector<ShaderType> requested_shaders = {ShaderType::TRANSFORM_V_WITH_TEXTURES};
     ShaderCache shader_cache(requested_shaders, sinks);
-    AnimatedTextureAtlas animated_texture_atlas("assets/alphabet.json", "assets/alphabet.png", 250.0);
+    AnimatedTextureAtlas animated_texture_atlas("assets/flame.json", "assets/flame.png", 50.0);
 
     glfwSwapInterval(0);
 
     auto [vbo_name, ibo_name, vao_name, tcbo_name] =
         prepare_drawing_data_and_opengl_drawing_data(shader_cache, animated_texture_atlas);
+
+    std::unordered_map<SoundType, std::string> sound_type_to_file = {
+        {SoundType::SOUND_1, "assets/sounds/Flick_noflame.mp3"},
+        {SoundType::SOUND_2, "assets/sounds/Flick_withflame.mp3"},
+    };
+
+    SoundSystem sound_system(100, sound_type_to_file);
+
+    ScriptedSceneManager scripted_scene_manager("assets/scene_script.json");
+    std::function<void(double, const json &, const json &)> scripted_events =
+        [&](double ms_curr_time, const json &curr_state, const json &prev_state) {
+            if (curr_state["flame.draw"]) {
+                std::vector<glm::vec2> atlas_texture_coordinates =
+                    animated_texture_atlas.get_texture_coordinates_of_sprite(ms_curr_time);
+                glBindBuffer(GL_ARRAY_BUFFER, tcbo_name);
+                glBufferData(GL_ARRAY_BUFFER, atlas_texture_coordinates.size() * sizeof(glm::vec2),
+                             atlas_texture_coordinates.data(), GL_STATIC_DRAW);
+
+                shader_cache.use_shader_program(ShaderType::TRANSFORM_V_WITH_TEXTURES);
+                shader_cache.set_uniform(ShaderType::TRANSFORM_V_WITH_TEXTURES, ShaderUniformVariable::TRANSFORM,
+                                         glm::mat4(1.0f));
+                glBindVertexArray(vao_name);
+                glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+            }
+
+            if (curr_state["flick.play"] && !prev_state["flick.play"]) {
+                sound_system.queue_sound(SoundType::SOUND_2, glm::vec3(0.0));
+                sound_system.play_all_sounds();
+            }
+        };
 
     int width, height;
 
@@ -115,23 +152,11 @@ int main() {
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // use animated texture atlas
-        // --------------------------
+        // run scripted events
+        // -------------------
         double ms_curr_time = glfwGetTime() * 1000.0;
-        std::vector<glm::vec2> atlas_texture_coordinates =
-            animated_texture_atlas.get_texture_coordinates_of_sprite(ms_curr_time);
-        glBindBuffer(GL_ARRAY_BUFFER, tcbo_name);
-        glBufferData(GL_ARRAY_BUFFER, atlas_texture_coordinates.size() * sizeof(glm::vec2),
-                     atlas_texture_coordinates.data(), GL_STATIC_DRAW);
-        // --------------------------
-
-        shader_cache.use_shader_program(ShaderType::TRANSFORM_V_WITH_TEXTURES);
-        shader_cache.set_uniform(ShaderType::TRANSFORM_V_WITH_TEXTURES, ShaderUniformVariable::TRANSFORM,
-                                 glm::mat4(1.0f));
-        glBindVertexArray(vao_name); // seeing as we only have a single VAO there's
-                                     // no need to bind it every time, but we'll do
-                                     // so to keep things a bit more organized
-        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+        scripted_scene_manager.run_scripted_events(ms_curr_time, scripted_events);
+        // -------------------
 
         glfwSwapBuffers(window);
         glfwPollEvents();

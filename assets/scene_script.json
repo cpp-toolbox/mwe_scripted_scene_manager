@@ -1,0 +1,36 @@
+{
+  "state": {
+    "flame.draw": false,
+    "flick.play": false
+  },
+  "changes": [
+    {
+      "time": 0,
+      "change": {
+        "flame.draw": true,
+        "flick.play": true
+      }
+    },
+    {
+      "time": 3000,
+      "change": {
+        "flame.draw": false,
+        "flick.play": false
+      }
+    },
+    {
+      "time": 5000,
+      "change": {
+        "flame.draw": true,
+        "flick.play": true
+      }
+    },
+    {
+      "time": 8000,
+      "change": {
+        "flame.draw": false,
+        "flick.play": false
+      }
+    }
+  ]
+}
