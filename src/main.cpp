@@ -6,6 +6,7 @@
 #include "graphics/scripted_scene_manager/scripted_scene_manager.hpp"
 #include "graphics/window/window.hpp"
 #include "graphics/shader_cache/shader_cache.hpp"
+#include "graphics/particle_emitter/particle_emitter.hpp"
 #include "sound_system/sound_system.hpp"
 #include "utility/glfw_lambda_callback_manager/glfw_lambda_callback_manager.hpp"
 #include "graphics/texture_packer/texture_packer.hpp"
@@ -19,6 +20,7 @@
 
 #include <functional>
 #include <iostream>
+#include <random>
 
 #include <nlohmann/json.hpp>
 
@@ -26,6 +28,69 @@ using json = nlohmann::json;
 
 unsigned int SCREEN_WIDTH = 640;
 unsigned int SCREEN_HEIGHT = 480;
+
+class SmokeParticleEmitter {
+  public:
+    ParticleEmitter particle_emitter;
+
+    SmokeParticleEmitter(unsigned int max_particles)
+        : particle_emitter(life_span_lambda(), initial_velocity_lambda(), velocity_change_lambda(), scaling_lambda(),
+                           rotation_lambda(), spawn_delay_lambda(), max_particles) {}
+
+  private:
+    static std::function<float()> life_span_lambda() {
+        return []() -> float {
+            static std::mt19937 rng(std::random_device{}());
+            std::uniform_real_distribution<float> dist(1.0f, 3.0f);
+            return dist(rng);
+        };
+    }
+
+    static std::function<glm::vec3()> initial_velocity_lambda() {
+        return []() -> glm::vec3 {
+            static std::mt19937 rng(std::random_device{}());
+            std::uniform_real_distribution<float> horizontal_dist(-0.5f, 0.5f); // Small lateral variance
+            std::uniform_real_distribution<float> upward_dist(1.0f, 2.0f);      // Strong upward push
+
+            // Initial upward push with slight lateral drift
+            float dx = horizontal_dist(rng);
+            float dy = upward_dist(rng); // Main upward velocity
+            float dz = horizontal_dist(rng);
+
+            return glm::vec3(dx, dy, dz);
+            /*return glm::vec3(0, 0, 0);*/
+        };
+    }
+
+    static std::function<glm::vec3(float, float)> velocity_change_lambda() {
+        return [](float life_percentage, float delta_time) -> glm::vec3 {
+            static std::mt19937 rng(std::random_device{}());
+            std::uniform_real_distribution<float> horizontal_dist(-0.010f, 0.010f); // Small lateral variance
+            std::uniform_real_distribution<float> vertical_dist(0.2f, 0.3f);
+
+            float accel_x = horizontal_dist(rng);
+            float accel_y = vertical_dist(rng);
+            float accel_z = horizontal_dist(rng);
+
+            glm::vec3 smoke_push_down = -glm::vec3(accel_x, accel_y, accel_z) * delta_time;
+            return smoke_push_down;
+        };
+    }
+
+    static std::function<float(float)> scaling_lambda() {
+        return [](float life_percentage) -> float { return std::max(life_percentage * 2.0f, 0.0f); };
+    }
+
+    static std::function<float(float)> rotation_lambda() {
+        return [](float life_percentage) -> float { return life_percentage / 5.0f; };
+    }
+
+    static std::function<float()> spawn_delay_lambda() {
+        return []() -> float {
+            return 0.01f; // Spawn a new particle every 0.05 seconds
+        };
+    }
+};
 
 static void error_callback(int error, const char *description) { fprintf(stderr, "Error: %s\n", description); }
 
@@ -103,8 +168,8 @@ int main() {
     SoundSystem sound_system(100, sound_type_to_file);
 
     std::vector<glm::vec2> packed_tex_coords_last_tick{};
-    int curr_obj_id = 0;
-    int flame_obj_id = 0;
+    int curr_obj_id = 1000;
+    int flame_obj_id = 1000;
 
     ScriptedSceneManager scripted_scene_manager("assets/scene_script.json");
     std::function<void(double, const json &, const json &)> scripted_events = [&](double ms_curr_time,
@@ -136,6 +201,15 @@ int main() {
         }
     };
 
+    SmokeParticleEmitter spe(1000);
+    auto smoke_vertices = generate_square_vertices(0, 0, 0.5);
+    auto smoke_indices = generate_rectangle_indices();
+    std::vector<glm::vec2> smoke_local_uvs = generate_rectangle_texture_coordinates();
+    auto smoke_texture_coordinates =
+        texture_packer.get_packed_texture_coordinates("assets/images/smoke_64px.png", smoke_local_uvs);
+    auto smoke_pt_idx = texture_packer.get_packed_texture_index_of_texture("assets/images/smoke_64px.png");
+    std::vector<int> smoke_pt_idxs(4, smoke_pt_idx); // 4 because square
+
     int width, height;
 
     double previous_time = glfwGetTime();
@@ -149,6 +223,7 @@ int main() {
         glViewport(0, 0, width, height);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClearColor(0.5, 0.5, 0.5, 1.0);
 
         // pass uniforms
         camera.process_input(window, delta_time);
@@ -165,6 +240,51 @@ int main() {
         // -------------------
         double ms_curr_time = glfwGetTime() * 1000.0;
         scripted_scene_manager.run_scripted_events(ms_curr_time, scripted_events);
+
+        spe.particle_emitter.update(delta_time, projection * view);
+        auto particles = spe.particle_emitter.get_particles_sorted_by_distance();
+
+        for (size_t i = 0; i < particles.size(); ++i) {
+            auto &curr_particle = particles[i];
+
+            //  compute the up vector (assuming we want it to be along the y-axis)
+            glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
+            glm::vec3 forward = camera.transform.compute_forward_vector();
+
+            glm::vec3 right = glm::normalize(glm::cross(up, forward));
+
+            up = glm::normalize(glm::cross(forward, right));
+
+            // this makes it billboarded
+            glm::mat4 rotation_matrix = glm::mat4(1.0f);
+            rotation_matrix[0] = glm::vec4(right, 0.0f);
+            rotation_matrix[1] = glm::vec4(up, 0.0f);
+            rotation_matrix[2] = glm::vec4(-forward, 0.0f); // We negate the direction for correct facing
+
+            glm::mat4 transform = glm::translate(glm::mat4(1.0f), curr_particle.transform.position);
+            transform *= rotation_matrix;
+            transform = glm::scale(transform, curr_particle.transform.scale);
+
+            ltw_matrices[i] = transform;
+
+            if (curr_particle.is_alive()) {
+
+                /*auto nv =*/
+                /*    generate_rectangle_vertices_3d(particle.transform.position,
+                 * camera.transform.compute_right_vector(),*/
+                /*                                   camera.transform.compute_up_vector(), 1, 1);*/
+
+                std::vector<unsigned int> smoke_ltw_mat_idxs(4, i);
+                batcher.texture_packer_cwl_v_transformation_ubos_1024_shader_batcher.queue_draw(
+                    i, smoke_indices, smoke_vertices, smoke_ltw_mat_idxs, smoke_pt_idxs, smoke_texture_coordinates);
+            }
+        }
+
+        // load in the matrices
+        glBindBuffer(GL_UNIFORM_BUFFER, ltw_matrices_gl_name);
+        glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(ltw_matrices), ltw_matrices);
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
         batcher.texture_packer_cwl_v_transformation_ubos_1024_shader_batcher.draw_everything();
         // -------------------
 

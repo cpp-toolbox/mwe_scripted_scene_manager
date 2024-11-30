@@ -49,3 +49,6 @@
 [submodule "src/input/mouse"]
 	path = src/input/mouse
 	url = git@github.com:cpp-toolbox/mouse.git
+[submodule "src/graphics/particle_emitter"]
+	path = src/graphics/particle_emitter
+	url = git@github.com:cpp-toolbox/particle_emitter.git
