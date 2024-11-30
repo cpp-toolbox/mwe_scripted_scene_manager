@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 project(mwe_scripted_scene_manager)
 
+add_compile_definitions(_USE_MATH_DEFINES)
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_STANDARD 20)
 

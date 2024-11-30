@@ -14,7 +14,7 @@
     {
       "time": 3000,
       "change": {
-        "flame.draw": false,
+        "flame.draw": true,
         "flick.play": false
       }
     },
@@ -28,7 +28,7 @@
     {
       "time": 8000,
       "change": {
-        "flame.draw": false,
+        "flame.draw": true,
         "flick.play": false
       }
     }
