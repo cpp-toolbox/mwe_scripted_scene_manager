@@ -11,6 +11,15 @@ file(GLOB_RECURSE SOURCES "src/*.cpp")
 # Add the main executable
 add_executable(${PROJECT_NAME} ${SOURCES})
 
+
+add_custom_target(copy_resources ALL
+	COMMAND ${CMAKE_COMMAND} -E copy_directory
+	${PROJECT_SOURCE_DIR}/assets
+	${PROJECT_BINARY_DIR}/assets
+	COMMENT "Copying resources into binary directory")
+
+add_dependencies(${PROJECT_NAME} copy_resources)
+
 find_package(glad)
 find_package(glfw3)
 find_package(stb)

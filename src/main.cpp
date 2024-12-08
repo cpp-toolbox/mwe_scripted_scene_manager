@@ -4,6 +4,7 @@
 #include "graphics/batcher/generated/batcher.hpp"
 #include "graphics/fps_camera/fps_camera.hpp"
 #include "graphics/scripted_scene_manager/scripted_scene_manager.hpp"
+#include "graphics/vertex_geometry/vertex_geometry.hpp"
 #include "graphics/window/window.hpp"
 #include "graphics/shader_cache/shader_cache.hpp"
 #include "graphics/particle_emitter/particle_emitter.hpp"
@@ -50,7 +51,7 @@ class SmokeParticleEmitter {
         return []() -> glm::vec3 {
             static std::mt19937 rng(std::random_device{}());
             std::uniform_real_distribution<float> horizontal_dist(-0.5f, 0.5f); // Small lateral variance
-            std::uniform_real_distribution<float> upward_dist(1.0f, 2.0f);      // Strong upward push
+            std::uniform_real_distribution<float> upward_dist(0.75f, 0.9f);     // upward push
 
             // Initial upward push with slight lateral drift
             float dx = horizontal_dist(rng);
@@ -78,7 +79,7 @@ class SmokeParticleEmitter {
     }
 
     static std::function<float(float)> scaling_lambda() {
-        return [](float life_percentage) -> float { return std::max(life_percentage * 2.0f, 0.0f); };
+        return [](float life_percentage) -> float { return std::max(life_percentage * 1.2f, 0.0f); };
     }
 
     static std::function<float(float)> rotation_lambda() {
@@ -86,9 +87,7 @@ class SmokeParticleEmitter {
     }
 
     static std::function<float()> spawn_delay_lambda() {
-        return []() -> float {
-            return 0.01f; // Spawn a new particle every 0.05 seconds
-        };
+        return []() -> float { return 0.1f; };
     }
 };
 
@@ -101,16 +100,9 @@ template <typename T, typename R, typename... Args> auto wrap_member_function(T 
 }
 
 int main() {
-    std::vector<glm::vec3> flame_vertices = {
-        {0.5f, 0.5f, 0.0f},   // top right
-        {0.5f, -0.5f, 0.0f},  // bottom right
-        {-0.5f, -0.5f, 0.0f}, // bottom left
-        {-0.5f, 0.5f, 0.0f}   // top left
-    };
-    std::vector<unsigned int> flame_indices = {
-        0, 1, 3, // first triangle
-        1, 2, 3  // second triangle
-    };
+
+    std::vector<glm::vec3> flame_vertices = generate_rectangle_vertices(0, 0.1, 0.5, 0.5);
+    std::vector<unsigned int> flame_indices = generate_rectangle_indices();
 
     auto console_sink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
     console_sink->set_level(spdlog::level::debug);
@@ -140,10 +132,18 @@ int main() {
     std::vector<ShaderType> requested_shaders = {ShaderType::TEXTURE_PACKER_CWL_V_TRANSFORMATION_UBOS_1024};
     ShaderCache shader_cache(requested_shaders, sinks);
     Batcher batcher(shader_cache);
-    AnimatedTextureAtlas animated_texture_atlas("assets/images/alphabet.json", "assets/images/alphabet.png", 500.0);
 
-    TexturePacker texture_packer("assets/packed_textures/packed_texture.json",
-                                 {"assets/packed_textures/packed_texture_0.png"});
+    /*TexturePacker texture_packer("assets/packed_textures/packed_texture.json",*/
+    /*                             {"assets/packed_textures/container_0_atlas_visualization.png",*/
+    /*                              "assets/packed_textures/container_1_atlas_visualization.png"});*/
+
+    TexturePacker texture_packer(
+        "assets/packed_textures/packed_texture.json",
+        {"assets/packed_textures/packed_texture_0.png", "assets/packed_textures/packed_texture_1.png"});
+
+    AnimatedTextureAtlas animated_texture_atlas("", "assets/images/flame.png", 50.0, texture_packer);
+
+    /*AnimatedTextureAtlas animated_texture_atlas("", "assets/images/flame.png", 500.0, texture_packer);*/
 
     glfwSwapInterval(0);
 
@@ -171,15 +171,20 @@ int main() {
     int curr_obj_id = 1000;
     int flame_obj_id = 1000;
 
+    SmokeParticleEmitter spe(1000);
     ScriptedSceneManager scripted_scene_manager("assets/scene_script.json");
+
     std::function<void(double, const json &, const json &)> scripted_events = [&](double ms_curr_time,
                                                                                   const json &curr_state,
                                                                                   const json &prev_state) {
         if (curr_state["flame.draw"]) {
-            std::vector<glm::vec2> atlas_texture_coordinates =
-                animated_texture_atlas.get_texture_coordinates_of_sprite(ms_curr_time);
-            auto packed_tex_coords =
-                texture_packer.get_packed_texture_coordinates("assets/images/alphabet.png", atlas_texture_coordinates);
+            spe.particle_emitter.resume_emitting_particles();
+            std::vector<glm::vec2> packed_tex_coords =
+                animated_texture_atlas.get_texture_coordinates_of_current_animation_frame(ms_curr_time);
+
+            /*auto packed_tex_coords =*/
+            /*    texture_packer.get_packed_texture_coordinates("assets/images/alphabet.png",
+             * atlas_texture_coordinates);*/
 
             bool new_coords = false;
             if (packed_tex_coords != packed_tex_coords_last_tick) {
@@ -195,13 +200,16 @@ int main() {
                 curr_obj_id, flame_indices, flame_vertices, ltw_mat_idxs, packed_texture_indices, packed_tex_coords);
         }
 
+        if (!curr_state["flame.draw"]) {
+            spe.particle_emitter.stop_emitting_particles();
+        }
+
         if (curr_state["flick.play"] && !prev_state["flick.play"]) {
             sound_system.queue_sound(SoundType::SOUND_2, glm::vec3(0.0));
             sound_system.play_all_sounds();
         }
     };
 
-    SmokeParticleEmitter spe(1000);
     auto smoke_vertices = generate_square_vertices(0, 0, 0.5);
     auto smoke_indices = generate_rectangle_indices();
     std::vector<glm::vec2> smoke_local_uvs = generate_rectangle_texture_coordinates();
@@ -223,7 +231,7 @@ int main() {
         glViewport(0, 0, width, height);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        glClearColor(0.5, 0.5, 0.5, 1.0);
+        glClearColor(0.1, 0.1, 0.1, 1.0);
 
         // pass uniforms
         camera.process_input(window, delta_time);
@@ -237,7 +245,6 @@ int main() {
                                  ShaderUniformVariable::WORLD_TO_CAMERA, view);
 
         // run scripted events
-        // -------------------
         double ms_curr_time = glfwGetTime() * 1000.0;
         scripted_scene_manager.run_scripted_events(ms_curr_time, scripted_events);
 

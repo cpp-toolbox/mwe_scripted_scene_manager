@@ -14,7 +14,7 @@
     {
       "time": 3000,
       "change": {
-        "flame.draw": true,
+        "flame.draw": false,
         "flick.play": false
       }
     },
@@ -28,7 +28,49 @@
     {
       "time": 8000,
       "change": {
+        "flame.draw": false,
+        "flick.play": false
+      }
+    },
+    {
+      "time": 9000,
+      "change": {
         "flame.draw": true,
+        "flick.play": true
+      }
+    },
+    {
+      "time": 9500,
+      "change": {
+        "flame.draw": false,
+        "flick.play": false
+      }
+    },
+    {
+      "time": 10000,
+      "change": {
+        "flame.draw": true,
+        "flick.play": true
+      }
+    },
+    {
+      "time": 10500,
+      "change": {
+        "flame.draw": false,
+        "flick.play": false
+      }
+    },
+    {
+      "time": 11000,
+      "change": {
+        "flame.draw": true,
+        "flick.play": true
+      }
+    },
+    {
+      "time": 11500,
+      "change": {
+        "flame.draw": false,
         "flick.play": false
       }
     }
