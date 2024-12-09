@@ -109,6 +109,8 @@ struct PointLightAttributes {
     float quadratic;
 };
 
+// NOTE we baked in the specular and diffuse into the lights but in reality this is material based
+// need to restructure this later
 void set_shader_light_data(FPSCamera &camera, ShaderCache &shader_cache, bool is_flame_active) {
     ShaderProgramInfo shader_info =
         shader_cache.get_shader_program(ShaderType::TEXTURE_PACKER_CWL_V_TRANSFORMATION_UBOS_1024_MULTIPLE_LIGHTS);
@@ -134,7 +136,7 @@ void set_shader_light_data(FPSCamera &camera, ShaderCache &shader_cache, bool is
 
     // Point light data
     std::vector<PointLightAttributes> point_lights = {
-        {{2, 2, 2}, {0.02f, 0.02f, 0.02f}, {0.2f, 0.2f, 0.2f}, {0.4f, 0.4f, 0.4f}, 1.0f, 0.09f, 0.032f},
+        {{2, 2, 2}, {0.52f, 0.12f, 0.12f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, 1.0f, 0.09f, 0.032f},
         {{2, -2, 2}, {0.02f, 0.02f, 0.02f}, {0.2f, 0.2f, 0.2f}, {0.4f, 0.4f, 0.4f}, 1.0f, 0.09f, 0.032f},
         {{2, 2, -2}, {0.02f, 0.02f, 0.02f}, {0.2f, 0.2f, 0.2f}, {0.4f, 0.4f, 0.4f}, 1.0f, 0.09f, 0.032f},
         {{-2, 2, 2}, {0.02f, 0.02f, 0.02f}, {0.2f, 0.2f, 0.2f}, {0.4f, 0.4f, 0.4f}, 1.0f, 0.09f, 0.032f},
