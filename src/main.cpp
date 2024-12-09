@@ -136,10 +136,10 @@ void set_shader_light_data(FPSCamera &camera, ShaderCache &shader_cache, bool is
 
     // Point light data
     std::vector<PointLightAttributes> point_lights = {
-        {{2, 2, 2}, {0.52f, 0.12f, 0.12f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, 1.0f, 0.09f, 0.032f},
-        {{2, -2, 2}, {0.02f, 0.02f, 0.02f}, {0.2f, 0.2f, 0.2f}, {0.4f, 0.4f, 0.4f}, 1.0f, 0.09f, 0.032f},
-        {{2, 2, -2}, {0.02f, 0.02f, 0.02f}, {0.2f, 0.2f, 0.2f}, {0.4f, 0.4f, 0.4f}, 1.0f, 0.09f, 0.032f},
-        {{-2, 2, 2}, {0.02f, 0.02f, 0.02f}, {0.2f, 0.2f, 0.2f}, {0.4f, 0.4f, 0.4f}, 1.0f, 0.09f, 0.032f},
+        {{2, 2, 2}, {0.52f, 0.12f, 0.32f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, 1.0f, 0.09f, 0.032f},
+        {{2, -2, 2}, {0.02f, 0.02f, 0.02f}, {0.1f, 0.1f, 0.1f}, {0.4f, 0.4f, 0.4f}, 1.0f, 0.09f, 0.032f},
+        {{2, 2, -2}, {0.02f, 0.02f, 0.02f}, {0.1f, 0.1f, 0.1f}, {0.4f, 0.4f, 0.4f}, 1.0f, 0.09f, 0.032f},
+        {{-2, 2, 2}, {0.02f, 0.02f, 0.02f}, {0.1f, 0.1f, 0.1f}, {0.4f, 0.4f, 0.4f}, 1.0f, 0.09f, 0.032f},
     };
 
     // Enhanced flickering effect
@@ -155,6 +155,12 @@ void set_shader_light_data(FPSCamera &camera, ShaderCache &shader_cache, bool is
         if (is_flame_active && i == 0) {
             light.diffuse *= flame_intensity;
             light.specular *= flame_intensity;
+        }
+
+        // Adjust flame light intensity
+        if (!is_flame_active && i == 0) {
+            light.diffuse *= 0;
+            light.specular *= 0;
         }
 
         setVec3(glGetUniformLocation(shader_info.id, (base + "position").c_str()), light.position);
