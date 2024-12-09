@@ -697,6 +697,14 @@
             "width": 64,
             "height": 64,
             "sub_textures": {}
+        },
+        "assets/images/test_box.png": {
+            "container_index": 1,
+            "x": 64,
+            "y": 0,
+            "width": 64,
+            "height": 64,
+            "sub_textures": {}
         }
     }
 }

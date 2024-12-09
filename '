@@ -130,20 +130,22 @@ void set_shader_light_data(FPSCamera &camera, ShaderCache &shader_cache, bool is
         setVec3(glGetUniformLocation(shader_info.id, "dir_light.diffuse"), diffuse);
         setVec3(glGetUniformLocation(shader_info.id, "dir_light.specular"), specular);
     };
-    set_dir_light({-0.2f, -1.0f, -0.3f}, {0.1f, 0.1f, 0.1f}, {0.8f, 0.8f, 0.8f}, {1.0f, 1.0f, 1.0f});
+    set_dir_light({-0.2f, -1.0f, -0.3f}, {0.05f, 0.05f, 0.05f}, {0.4f, 0.4f, 0.4f}, {0.5f, 0.5f, 0.5f});
 
     // Point light data
     std::vector<PointLightAttributes> point_lights = {
-        {{2, 2, 2}, {0.02f, 0.02f, 0.02f}, {0.2f, 0.2f, 0.2f}, {0.4f, 0.4f, 0.4f}, 1.0f, 0.09f, 0.032f},
-        {{2, -2, 2}, {0.02f, 0.02f, 0.02f}, {0.2f, 0.2f, 0.2f}, {0.4f, 0.4f, 0.4f}, 1.0f, 0.09f, 0.032f},
-        {{2, 2, -2}, {0.02f, 0.02f, 0.02f}, {0.2f, 0.2f, 0.2f}, {0.4f, 0.4f, 0.4f}, 1.0f, 0.09f, 0.032f},
-        {{-2, 2, 2}, {0.02f, 0.02f, 0.02f}, {0.2f, 0.2f, 0.2f}, {0.4f, 0.4f, 0.4f}, 1.0f, 0.09f, 0.032f},
+        // flame
+        {{0.01, 0.01, 0.01}, {0.01f, 0.01f, 0.01f}, {0.1f, 0.1f, 0.1f}, {0.2f, 0.2f, 0.2f}, 1.0f, 0.09f, 0.032f},
+        // scene lights
+        {{2, -2, 2}, {0.01f, 0.01f, 0.01f}, {0.1f, 0.1f, 0.1f}, {0.2f, 0.2f, 0.2f}, 1.0f, 0.09f, 0.032f},
+        {{2, 2, -2}, {0.01f, 0.01f, 0.01f}, {0.1f, 0.1f, 0.1f}, {0.2f, 0.2f, 0.2f}, 1.0f, 0.09f, 0.032f},
+        {{-2, 2, 2}, {0.01f, 0.01f, 0.01f}, {0.1f, 0.1f, 0.1f}, {0.2f, 0.2f, 0.2f}, 1.0f, 0.09f, 0.032f},
     };
 
     // Enhanced flickering effect
     float current_time = static_cast<float>(glfwGetTime());
     float flicker_factor = (sin(current_time * 7.0f) + sin(current_time * 13.0f)) * 0.5f + 0.5f; // Combined sine waves
-    float flame_intensity = is_flame_active ? (0.6f + 0.4f * flicker_factor) : 0.0f;
+    float flame_intensity = is_flame_active ? 2 * (0.6f + 0.4f * flicker_factor) : 0.0f;
 
     for (size_t i = 0; i < point_lights.size(); ++i) {
         auto light = point_lights[i];
@@ -180,11 +182,9 @@ void set_shader_light_data(FPSCamera &camera, ShaderCache &shader_cache, bool is
         setFloat(glGetUniformLocation(shader_info.id, "spot_light.outer_cut_off"), outer_cutoff);
     };
 
-    set_spot_light(camera.transform.position, camera.transform.compute_forward_vector(),
-                   {0.1f, 0.1f, 0.1f}, // ambient light (soft overall lighting)
-                   {1.0f, 1.0f, 1.0f}, // diffuse light (intense light from the spotlight)
-                   {1.0f, 1.0f, 1.0f}, // specular light (highlighted areas with shininess)
-                   1.0f, 0.09f, 0.032f, glm::cos(glm::radians(12.5f)), glm::cos(glm::radians(15.0f)));
+    set_spot_light(camera.transform.position, camera.transform.compute_forward_vector(), {0.0f, 0.0f, 0.0f},
+                   {0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, 1.0f, 0.09f, 0.032f, glm::cos(glm::radians(12.5f)),
+                   glm::cos(glm::radians(15.0f)));
 }
 
 // Wrapper that automatically creates a lambda for member functions
@@ -211,7 +211,7 @@ int main() {
     LiveInputState live_input_state;
 
     GLFWwindow *window =
-        initialize_glfw_glad_and_return_window(SCREEN_WIDTH, SCREEN_HEIGHT, "glfw window", false, false, false);
+        initialize_glfw_glad_and_return_window(SCREEN_WIDTH, SCREEN_HEIGHT, "glfw window", true, false, false);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);

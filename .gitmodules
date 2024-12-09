@@ -52,3 +52,15 @@
 [submodule "src/graphics/particle_emitter"]
 	path = src/graphics/particle_emitter
 	url = git@github.com:cpp-toolbox/particle_emitter.git
+[submodule "src/graphics/texture_packer_model_loading"]
+	path = src/graphics/texture_packer_model_loading
+	url = git@github.com:cpp-toolbox/texture_packer_model_loading.git
+[submodule "src/utility/rigged_model_loading"]
+	path = src/utility/rigged_model_loading
+	url = git@github.com:cpp-toolbox/rigged_model_loading.git
+[submodule "src/utility/model_loading"]
+	path = src/utility/model_loading
+	url = git@github.com:cpp-toolbox/model_loading.git
+[submodule "src/graphics/draw_info"]
+	path = src/graphics/draw_info
+	url = git@github.com:cpp-toolbox/draw_info.git
