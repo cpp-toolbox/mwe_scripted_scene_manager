@@ -29,16 +29,16 @@
 
 using json = nlohmann::json;
 
-unsigned int SCREEN_WIDTH = 640;
-unsigned int SCREEN_HEIGHT = 480;
+unsigned int SCREEN_WIDTH = 800;
+unsigned int SCREEN_HEIGHT = 800;
 
 class SmokeParticleEmitter {
   public:
     ParticleEmitter particle_emitter;
 
-    SmokeParticleEmitter(unsigned int max_particles)
+    SmokeParticleEmitter(unsigned int max_particles, Transform initial_transform)
         : particle_emitter(life_span_lambda(), initial_velocity_lambda(), velocity_change_lambda(), scaling_lambda(),
-                           rotation_lambda(), spawn_delay_lambda(), max_particles) {}
+                           rotation_lambda(), spawn_delay_lambda(), max_particles, initial_transform) {}
 
   private:
     static std::function<float()> life_span_lambda() {
@@ -53,7 +53,8 @@ class SmokeParticleEmitter {
         return []() -> glm::vec3 {
             static std::mt19937 rng(std::random_device{}());
             std::uniform_real_distribution<float> horizontal_dist(-0.5f, 0.5f); // Small lateral variance
-            std::uniform_real_distribution<float> upward_dist(0.75f, 0.9f);     // upward push
+            /*std::uniform_real_distribution<float> upward_dist(0.75f, 0.9f);     // upward push rever back to this*/
+            std::uniform_real_distribution<float> upward_dist(2.0f, 3.0f); // upward push
 
             // Initial upward push with slight lateral drift
             float dx = horizontal_dist(rng);
@@ -136,7 +137,7 @@ void set_shader_light_data(FPSCamera &camera, ShaderCache &shader_cache, bool is
 
     // Point light data
     std::vector<PointLightAttributes> point_lights = {
-        {{2, 2, 2}, {0.52f, 0.12f, 0.32f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, 1.0f, 0.09f, 0.032f},
+        {{0, 0, 0}, {0.52f, 0.12f, 0.32f}, {1.0f, 1.0f, 1.0f}, {1.0f, 1.0f, 1.0f}, 1.0f, 0.09f, 0.032f},
         {{2, -2, 2}, {0.02f, 0.02f, 0.02f}, {0.1f, 0.1f, 0.1f}, {0.4f, 0.4f, 0.4f}, 1.0f, 0.09f, 0.032f},
         {{2, 2, -2}, {0.02f, 0.02f, 0.02f}, {0.1f, 0.1f, 0.1f}, {0.4f, 0.4f, 0.4f}, 1.0f, 0.09f, 0.032f},
         {{-2, 2, 2}, {0.02f, 0.02f, 0.02f}, {0.1f, 0.1f, 0.1f}, {0.4f, 0.4f, 0.4f}, 1.0f, 0.09f, 0.032f},
@@ -204,7 +205,7 @@ template <typename T, typename R, typename... Args> auto wrap_member_function(T 
 int main() {
 
     bool flame_active = false;
-    std::vector<glm::vec3> flame_vertices = generate_rectangle_vertices(0, 0.1, 0.5, 0.5);
+    std::vector<glm::vec3> flame_vertices = generate_rectangle_vertices(0, 2, 3, 3);
     std::vector<unsigned int> flame_indices = generate_rectangle_indices();
     auto flame_normals = generate_rectangle_normals();
 
@@ -250,8 +251,8 @@ int main() {
 
     /*AnimatedTextureAtlas animated_texture_atlas("", "assets/images/flame.png", 500.0, texture_packer);*/
 
-    auto colored_cube = parse_model_into_ivpnts("assets/cube_test.obj", true);
-    auto packed_colored_cube = convert_ivpnt_to_ivpntp(colored_cube, texture_packer);
+    auto room = parse_model_into_ivpnts("assets/room/room.obj", true);
+    auto packed_room = convert_ivpnt_to_ivpntp(room, texture_packer);
 
     glfwSwapInterval(0);
 
@@ -279,7 +280,10 @@ int main() {
     int curr_obj_id = 1000;
     int flame_obj_id = 1000;
 
-    SmokeParticleEmitter spe(1000);
+    Transform spe_transform;
+    spe_transform.position = glm::vec3(0, 2, 0);
+    spe_transform.scale = glm::vec3(3, 3, 3);
+    SmokeParticleEmitter spe(1000, spe_transform);
     ScriptedSceneManager scripted_scene_manager("assets/scene_script.json");
 
     std::function<void(double, const json &, const json &)> scripted_events =
@@ -360,7 +364,7 @@ int main() {
         set_shader_light_data(camera, shader_cache, flame_active);
 
         int count = 1000;
-        for (auto &ivptp : packed_colored_cube) {
+        for (auto &ivptp : packed_room) {
             std::vector<unsigned int> ltw_indices(ivptp.xyz_positions.size(), 1000);
             std::vector<int> ptis(ivptp.xyz_positions.size(), ivptp.packed_texture_index);
             batcher.texture_packer_cwl_v_transformation_ubos_1024_multiple_lights_shader_batcher.queue_draw(
@@ -390,9 +394,11 @@ int main() {
             rotation_matrix[1] = glm::vec4(up, 0.0f);
             rotation_matrix[2] = glm::vec4(-forward, 0.0f); // We negate the direction for correct facing
 
+            // I think this is bad.
             glm::mat4 transform = glm::translate(glm::mat4(1.0f), curr_particle.transform.position);
             transform *= rotation_matrix;
             transform = glm::scale(transform, curr_particle.transform.scale);
+            transform = glm::scale(transform, curr_particle.emitter_transform.scale);
 
             ltw_matrices[i] = transform;
 
