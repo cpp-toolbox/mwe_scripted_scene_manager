@@ -3,7 +3,7 @@
 #include "graphics/animated_texture_atlas/animated_texture_atlas.hpp"
 #include "graphics/batcher/generated/batcher.hpp"
 #include "graphics/fps_camera/fps_camera.hpp"
-#include "graphics/scripted_scene_manager/scripted_scene_manager.hpp"
+#include "graphics/scripted_events/scripted_scene_manager.hpp"
 #include "graphics/vertex_geometry/vertex_geometry.hpp"
 #include "graphics/window/window.hpp"
 #include "graphics/shader_cache/shader_cache.hpp"
@@ -284,45 +284,64 @@ int main() {
     spe_transform.position = glm::vec3(0, 2, 0);
     spe_transform.scale = glm::vec3(3, 3, 3);
     SmokeParticleEmitter spe(1000, spe_transform);
-    ScriptedSceneManager scripted_scene_manager("assets/scene_script.json");
+    // turn off at first
+    spe.particle_emitter.stop_emitting_particles();
+    /*ScriptedEvent scripted_event("assets/scene_script.json");*/
+    ScriptedEvent scripted_event("src/graphics/scripted_events/scripted_event_file_processor/smoke_event.json");
 
-    std::function<void(double, const json &, const json &)> scripted_events =
-        [&](double ms_curr_time, const json &curr_state, const json &prev_state) {
-            if (curr_state["flame.draw"]) {
-                flame_active = true;
-                spe.particle_emitter.resume_emitting_particles();
-                std::vector<glm::vec2> packed_tex_coords =
-                    animated_texture_atlas.get_texture_coordinates_of_current_animation_frame(ms_curr_time);
+    std::unordered_map<std::string, std::function<void(bool, bool)>> event_callbacks = {
+        {"grab_pack",
+         [](bool first_call, bool last_call) {
+             std::cout << std::boolalpha; // Enable boolean text output
+             std::cout << "Handling grab_pack with action: " << glfwGetTime() << first_call << last_call << std::endl;
+         }},
+        {"lighter_flick_success",
+         [&](bool first_call, bool last_call) {
+             sound_system.queue_sound(SoundType::SOUND_2, glm::vec3(0.0));
+             sound_system.play_all_sounds();
+         }},
+        {"inhale",
+         [&](bool first_call, bool last_call) {
+             std::cout << "Handling inhale with action: " << glfwGetTime() << first_call << last_call << std::endl;
+             if (first_call) {
+                 flame_active = true;
+                 spe.particle_emitter.resume_emitting_particles();
+             }
 
-                /*auto packed_tex_coords =*/
-                /*    texture_packer.get_packed_texture_coordinates("assets/images/alphabet.png",
-                 * atlas_texture_coordinates);*/
+             if (last_call) {
+                 flame_active = false;
+                 spe.particle_emitter.stop_emitting_particles();
+                 return;
+             }
 
-                bool new_coords = false;
-                if (packed_tex_coords != packed_tex_coords_last_tick) {
-                    new_coords = true;
-                    curr_obj_id += 1;
-                }
-                packed_tex_coords_last_tick = packed_tex_coords;
+             double ms_curr_time = glfwGetTime() * 1000;
 
-                const std::vector<int> packed_texture_indices(4, 0);
-                std::vector<unsigned int> ltw_mat_idxs(4, flame_obj_id);
+             std::vector<glm::vec2> packed_tex_coords =
 
-                batcher.texture_packer_cwl_v_transformation_ubos_1024_multiple_lights_shader_batcher.queue_draw(
-                    curr_obj_id, flame_indices, flame_vertices, ltw_mat_idxs, packed_texture_indices, packed_tex_coords,
-                    flame_normals);
-            }
+                 animated_texture_atlas.get_texture_coordinates_of_current_animation_frame(ms_curr_time);
 
-            if (!curr_state["flame.draw"]) {
-                flame_active = false;
-                spe.particle_emitter.stop_emitting_particles();
-            }
+             /*auto packed_tex_coords =*/
+             /*    texture_packer.get_packed_texture_coordinates("assets/images/alphabet.png",
+              * atlas_texture_coordinates);*/
 
-            if (curr_state["flick.play"] && !prev_state["flick.play"]) {
-                sound_system.queue_sound(SoundType::SOUND_2, glm::vec3(0.0));
-                sound_system.play_all_sounds();
-            }
-        };
+             bool new_coords = false;
+             if (packed_tex_coords != packed_tex_coords_last_tick) {
+                 new_coords = true;
+                 curr_obj_id += 1;
+             }
+
+             packed_tex_coords_last_tick = packed_tex_coords;
+
+             const std::vector<int> packed_texture_indices(4, 0);
+             std::vector<unsigned int> ltw_mat_idxs(4, flame_obj_id);
+
+             std::cout << "doing flame" << std::endl;
+             batcher.texture_packer_cwl_v_transformation_ubos_1024_multiple_lights_shader_batcher.queue_draw(
+                 curr_obj_id, flame_indices, flame_vertices, ltw_mat_idxs, packed_texture_indices, packed_tex_coords,
+                 flame_normals);
+             std::cout << std::boolalpha; // Enable boolean text output
+         }},
+    };
 
     auto smoke_vertices = generate_square_vertices(0, 0, 0.5);
     auto smoke_indices = generate_rectangle_indices();
@@ -374,8 +393,8 @@ int main() {
         }
 
         // run scripted events
-        double ms_curr_time = glfwGetTime() * 1000.0;
-        scripted_scene_manager.run_scripted_events(ms_curr_time, scripted_events);
+        double curr_time_sec = glfwGetTime();
+        scripted_event.run_scripted_events(curr_time_sec, event_callbacks);
 
         for (size_t i = 0; i < particles.size(); ++i) {
             auto &curr_particle = particles[i];

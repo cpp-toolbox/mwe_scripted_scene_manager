@@ -23,7 +23,7 @@
 	path = src/graphics/animated_texture_atlas
 	url = git@github.com:cpp-toolbox/animated_texture_atlas.git
 [submodule "src/graphics/scripted_scene_manager"]
-	path = src/graphics/scripted_scene_manager
+	path = src/graphics/scripted_events
 	url = git@github.com:cpp-toolbox/scripted_scene_manager.git
 [submodule "src/graphics/sound_system"]
 	path = src/sound_system
@@ -64,3 +64,6 @@
 [submodule "src/graphics/draw_info"]
 	path = src/graphics/draw_info
 	url = git@github.com:cpp-toolbox/draw_info.git
+[submodule "src/utility/temporal_binary_signal"]
+	path = src/utility/temporal_binary_signal
+	url = git@github.com:cpp-toolbox/temporal_binary_signal.git
