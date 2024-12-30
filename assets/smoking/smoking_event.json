@@ -1,0 +1,80 @@
+{
+    "events": [
+        {
+            "name": "grab_pack",
+            "time": 0.4,
+            "type": "playthrough"
+        },
+        {
+            "name": "grab_cig",
+            "time": 1.1,
+            "type": "playthrough"
+        },
+        {
+            "name": "transfer_cig_into_left_hand",
+            "time": 1.9000000000000001,
+            "type": "playthrough"
+        },
+        {
+            "name": "grab_lighter",
+            "time": 3.0,
+            "type": "playthrough"
+        },
+        {
+            "name": "ligher_flick_fail",
+            "time": 3.8000000000000003,
+            "type": "playthrough"
+        },
+        {
+            "name": "lighter_flame",
+            "start_time": 4.4,
+            "end_time": 5.9,
+            "type": "toggle"
+        },
+        {
+            "name": "inhale",
+            "start_time": 7.2,
+            "end_time": 7.6000000000000005,
+            "type": "toggle"
+        },
+        {
+            "name": "exhale",
+            "start_time": 7.9,
+            "end_time": 8.9,
+            "type": "toggle"
+        },
+        {
+            "name": "inhale",
+            "start_time": 10.1,
+            "end_time": 11.3,
+            "type": "toggle"
+        },
+        {
+            "name": "exhale",
+            "start_time": 12.2,
+            "end_time": 13.8,
+            "type": "toggle"
+        },
+        {
+            "name": "inhale",
+            "start_time": 15.2,
+            "end_time": 16.8,
+            "type": "toggle"
+        },
+        {
+            "name": "grab_knife",
+            "time": 20.1,
+            "type": "playthrough"
+        },
+        {
+            "name": "knife_throw",
+            "time": 21.4,
+            "type": "playthrough"
+        },
+        {
+            "name": "couch_stab",
+            "time": 22.1,
+            "type": "playthrough"
+        }
+    ]
+}

@@ -67,3 +67,6 @@
 [submodule "src/utility/temporal_binary_signal"]
 	path = src/utility/temporal_binary_signal
 	url = git@github.com:cpp-toolbox/temporal_binary_signal.git
+[submodule "src/utility/unique_id_generator"]
+	path = src/utility/unique_id_generator
+	url = git@github.com:cpp-toolbox/unique_id_generator.git

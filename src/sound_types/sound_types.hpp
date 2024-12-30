@@ -3,8 +3,15 @@
 
 // Enum representing different sound types
 enum class SoundType {
-    SOUND_1,
-    SOUND_2
+    LIGHTER_SUCCESS,
+    LIGHTER_FAIL,
+    GRAB,
+    KNIFE_GRAB,
+    STAB,
+    EXHALE,
+    CIGARETTE_BURN,
+    AMBIENT,
+    WOOSH,
 };
 
 #endif // SOUND_TYPES_HPP
