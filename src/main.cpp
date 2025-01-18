@@ -13,6 +13,7 @@
 #include "graphics/particle_emitter/particle_emitter.hpp"
 #include "graphics/texture_packer/texture_packer.hpp"
 #include "graphics/texture_packer_model_loading/texture_packer_model_loading.hpp"
+#include "graphics/scripted_transform/scripted_transform.hpp"
 
 #include "sound_system/sound_system.hpp"
 
@@ -340,7 +341,7 @@ int main() {
     LiveInputState live_input_state;
 
     GLFWwindow *window =
-        initialize_glfw_glad_and_return_window(SCREEN_WIDTH, SCREEN_HEIGHT, "cpp-tbx demo", true, true, false, true);
+        initialize_glfw_glad_and_return_window(SCREEN_WIDTH, SCREEN_HEIGHT, "cpp-tbx demo", true, true, false, false);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -513,6 +514,21 @@ int main() {
     auto smoke_pt_idx = texture_packer.get_packed_texture_index_of_texture("assets/images/smoke_64px.png");
     std::vector<int> smoke_pt_idxs(4, smoke_pt_idx); // 4 because square
 
+    std::vector<ScriptedTransformKeyframe> keyframes = {
+        {glm::vec3(-2.42812, 0.75087, 1.23079), glm::vec3(-6.94999, 0.400007, 0), glm::vec3(1.0)},
+        {glm::vec3(-2.30063, 0.735328, 1.23168), glm::vec3(-6.94999, 0.400007, 0), glm::vec3(1.0)},
+        {glm::vec3(-1.44007, 0.609176, 1.54849), glm::vec3(-12.35, -42.35, 0), glm::vec3(1.0)},
+        {glm::vec3(-0.537447, 0.554101, 1.7012), glm::vec3(-14.25, -77.8, 0), glm::vec3(1.0)},
+        {glm::vec3(0.219981, 0.518201, 1.59799), glm::vec3(-16.4, -105.65, 0), glm::vec3(1.0)},
+        {glm::vec3(0.669285, 0.419364, 1.05889), glm::vec3(-16.85, -121.1, 0), glm::vec3(1.0)},
+        {glm::vec3(0.82821, 0.538547, 0.361138), glm::vec3(-19.45, -142.55, 0), glm::vec3(1.0)},
+        {glm::vec3(0.0950879, 0.840009, 0.121181), glm::vec3(-32.4999, -132.5, 0), glm::vec3(1.0)},
+        {glm::vec3(-0.762376, 1.22297, 0.309486), glm::vec3(-47.1498, -45.8001, 0), glm::vec3(1.0)},
+        {glm::vec3(-0.99569, 1.28449, 0.0686839), glm::vec3(-52.4997, -19.2001, 0), glm::vec3(1.0)},
+    };
+    ScriptedTransform scripted_transform(keyframes, 8000.0, 18000.0);
+    bool use_scripted_transform = true;
+
     int width, height;
 
     double previous_time = glfwGetTime();
@@ -530,6 +546,12 @@ int main() {
 
         // pass uniforms
         camera.process_input(window, delta_time);
+
+        scripted_transform.update(current_time * 1000.0);
+        if (use_scripted_transform) {
+            camera.transform.position = scripted_transform.transform.position;
+            camera.transform.rotation = scripted_transform.transform.rotation;
+        }
 
         glm::mat4 projection = camera.get_projection_matrix();
         glm::mat4 view = camera.get_view_matrix();
